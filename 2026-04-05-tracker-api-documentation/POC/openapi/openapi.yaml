@@ -1,0 +1,508 @@
+openapi: 3.1.0
+info:
+  title: Tracker API
+  version: 0.1.0
+  summary: Reference documentation for the tracker app API.
+  description: |
+    This is a starter OpenAPI document for a tracker app.
+
+    It shows the recommended documentation style:
+
+    - one spec file
+    - shared schemas
+    - consistent error responses
+    - realistic examples
+
+servers:
+  - url: https://api.trackerapp.example/v1
+    description: Production
+  - url: https://sandbox-api.trackerapp.example/v1
+    description: Sandbox
+
+tags:
+  - name: Trackers
+    description: Manage and inspect trackers.
+  - name: Telemetry
+    description: Read tracker events and status data.
+  - name: Commands
+    description: Send device commands to a tracker.
+
+security:
+  - bearerAuth: []
+
+paths:
+  /trackers:
+    get:
+      tags:
+        - Trackers
+      summary: List trackers
+      description: Returns trackers visible to the authenticated account.
+      operationId: listTrackers
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+        - name: status
+          in: query
+          description: Filter trackers by current status.
+          required: false
+          schema:
+            type: string
+            enum:
+              - online
+              - offline
+              - idle
+      responses:
+        '200':
+          description: A paginated list of trackers.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrackerListResponse'
+              examples:
+                default:
+                  value:
+                    data:
+                      - id: trk_01hrx9h4v4m4q50v7q5j2af8ab
+                        serialNumber: TK-100248
+                        name: Trailer 12
+                        status: online
+                        lastSeenAt: '2026-04-05T20:19:00Z'
+                        batteryPercent: 87
+                      - id: trk_01hrx9hs0m17k7p0s8xk3r8j1s
+                        serialNumber: TK-100249
+                        name: Forklift West
+                        status: idle
+                        lastSeenAt: '2026-04-05T19:48:00Z'
+                        batteryPercent: 62
+                    meta:
+                      page: 1
+                      perPage: 25
+                      total: 2
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /trackers/{trackerId}:
+    get:
+      tags:
+        - Trackers
+      summary: Get tracker
+      description: Returns a single tracker by its ID.
+      operationId: getTracker
+      parameters:
+        - $ref: '#/components/parameters/TrackerId'
+      responses:
+        '200':
+          description: The tracker was found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrackerResponse'
+              examples:
+                default:
+                  value:
+                    data:
+                      id: trk_01hrx9h4v4m4q50v7q5j2af8ab
+                      serialNumber: TK-100248
+                      name: Trailer 12
+                      status: online
+                      lastSeenAt: '2026-04-05T20:19:00Z'
+                      batteryPercent: 87
+                      firmwareVersion: 2.4.1
+                      location:
+                        latitude: 49.8951
+                        longitude: -97.1384
+                        recordedAt: '2026-04-05T20:18:42Z'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /trackers/{trackerId}/telemetry:
+    get:
+      tags:
+        - Telemetry
+      summary: List telemetry events
+      description: Returns recent telemetry records for a tracker.
+      operationId: listTrackerTelemetry
+      parameters:
+        - $ref: '#/components/parameters/TrackerId'
+        - name: start
+          in: query
+          description: Start of the UTC time window.
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: end
+          in: query
+          description: End of the UTC time window.
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: limit
+          in: query
+          description: Maximum records to return.
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+            default: 100
+      responses:
+        '200':
+          description: Telemetry records for the tracker.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TelemetryListResponse'
+              examples:
+                default:
+                  value:
+                    data:
+                      - id: evt_01hrxb7j7s4tb9d9jqh8g2s2fy
+                        type: heartbeat
+                        recordedAt: '2026-04-05T20:19:00Z'
+                        batteryPercent: 87
+                        signalStrength: -71
+                      - id: evt_01hrxb91j4xyr0yavh9z4jhm2f
+                        type: location
+                        recordedAt: '2026-04-05T20:18:42Z'
+                        location:
+                          latitude: 49.8951
+                          longitude: -97.1384
+                    meta:
+                      returned: 2
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /trackers/{trackerId}/commands/ping:
+    post:
+      tags:
+        - Commands
+      summary: Send ping command
+      description: Queues a ping command so the tracker reports in as soon as possible.
+      operationId: sendTrackerPing
+      parameters:
+        - $ref: '#/components/parameters/TrackerId'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PingCommandRequest'
+            examples:
+              default:
+                value:
+                  reason: Manual health check from admin dashboard
+      responses:
+        '202':
+          description: The ping command was accepted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommandAcceptedResponse'
+              examples:
+                default:
+                  value:
+                    data:
+                      commandId: cmd_01hrxbrm5qffzmrw5n2f3p6dd3
+                      trackerId: trk_01hrx9h4v4m4q50v7q5j2af8ab
+                      type: ping
+                      status: queued
+                      queuedAt: '2026-04-05T20:22:15Z'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    TrackerId:
+      name: trackerId
+      in: path
+      description: The unique tracker identifier.
+      required: true
+      schema:
+        type: string
+        example: trk_01hrx9h4v4m4q50v7q5j2af8ab
+    Page:
+      name: page
+      in: query
+      description: Page number.
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    PerPage:
+      name: perPage
+      in: query
+      description: Results per page.
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 25
+
+  responses:
+    Unauthorized:
+      description: Authentication is missing or invalid.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            default:
+              value:
+                error:
+                  code: unauthorized
+                  message: Authentication credentials are missing or invalid.
+    NotFound:
+      description: The requested resource was not found.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            default:
+              value:
+                error:
+                  code: not_found
+                  message: Tracker not found.
+    ValidationError:
+      description: One or more request fields are invalid.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ValidationErrorResponse'
+          examples:
+            default:
+              value:
+                error:
+                  code: validation_error
+                  message: The request body was invalid.
+                  details:
+                    reason:
+                      - Reason must be 120 characters or less.
+
+  schemas:
+    Tracker:
+      type: object
+      required:
+        - id
+        - serialNumber
+        - name
+        - status
+        - lastSeenAt
+        - batteryPercent
+      properties:
+        id:
+          type: string
+        serialNumber:
+          type: string
+        name:
+          type: string
+        status:
+          type: string
+          enum:
+            - online
+            - offline
+            - idle
+        lastSeenAt:
+          type: string
+          format: date-time
+        batteryPercent:
+          type: integer
+          minimum: 0
+          maximum: 100
+        firmwareVersion:
+          type:
+            - string
+            - 'null'
+        location:
+          $ref: '#/components/schemas/Location'
+    Location:
+      type: object
+      required:
+        - latitude
+        - longitude
+        - recordedAt
+      properties:
+        latitude:
+          type: number
+          format: double
+        longitude:
+          type: number
+          format: double
+        recordedAt:
+          type: string
+          format: date-time
+    TelemetryEvent:
+      type: object
+      required:
+        - id
+        - type
+        - recordedAt
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum:
+            - heartbeat
+            - location
+            - alert
+        recordedAt:
+          type: string
+          format: date-time
+        batteryPercent:
+          type:
+            - integer
+            - 'null'
+          minimum: 0
+          maximum: 100
+        signalStrength:
+          type:
+            - integer
+            - 'null'
+        location:
+          oneOf:
+            - $ref: '#/components/schemas/Location'
+            - type: 'null'
+    PingCommandRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        reason:
+          type: string
+          maxLength: 120
+          description: Optional human-readable reason for audit history.
+    CommandAccepted:
+      type: object
+      required:
+        - commandId
+        - trackerId
+        - type
+        - status
+        - queuedAt
+      properties:
+        commandId:
+          type: string
+        trackerId:
+          type: string
+        type:
+          type: string
+          enum:
+            - ping
+        status:
+          type: string
+          enum:
+            - queued
+            - sent
+        queuedAt:
+          type: string
+          format: date-time
+    TrackerResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: '#/components/schemas/Tracker'
+    TrackerListResponse:
+      type: object
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tracker'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+    TelemetryListResponse:
+      type: object
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/TelemetryEvent'
+        meta:
+          type: object
+          required:
+            - returned
+          properties:
+            returned:
+              type: integer
+    CommandAcceptedResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: '#/components/schemas/CommandAccepted'
+    PaginationMeta:
+      type: object
+      required:
+        - page
+        - perPage
+        - total
+      properties:
+        page:
+          type: integer
+        perPage:
+          type: integer
+        total:
+          type: integer
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+    ValidationErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            details:
+              type: object
+              additionalProperties:
+                type: array
+                items:
+                  type: string

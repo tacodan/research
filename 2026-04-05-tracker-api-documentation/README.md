@@ -188,6 +188,16 @@ If you want the simplest setup that still feels professional and standard, do th
 
 That gives you a single-page documentation system that is easy to read, easy to maintain, and aligned with common industry practice.
 
+## Prototype
+
+A small working prototype lives in this folder:
+
+- `POC/openapi/openapi.yaml`
+- `POC/redocly.yaml`
+- `POC/README.md`
+
+That prototype is intentionally small. It is there to show what the source file actually looks like and how a tracker API would be structured in practice.
+
 ## Sources
 
 - OpenAPI Initiative overview and specification: <https://www.openapis.org/> and <https://spec.openapis.org/oas/latest.html>

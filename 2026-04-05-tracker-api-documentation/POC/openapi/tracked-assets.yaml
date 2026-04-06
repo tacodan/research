@@ -1,0 +1,529 @@
+openapi: 3.0.3
+info:
+  title: Kept Tracked Assents Legacy Retrieval API
+  version: 0.1.0
+  description: |
+    Public API reference for Kept tracked-assets legacy recovery endpoints.
+servers:
+  - url: https://iot.keptcompanies.com/api
+    description: Production API base path
+tags:
+  - name: Tracked Assets
+paths:
+  /tracked-assets/searchByServiceAddress:
+    post:
+      tags:
+        - Tracked Assets
+      summary: List tracked assets by service address
+      description: |
+        Returns tracked assets assigned to the given Scheduler service address id.
+
+        This is a compatibility endpoint and intentionally keeps the legacy POST route.
+      operationId: searchTrackedAssetsByServiceAddress
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SearchByServiceAddressRequest'
+            examples:
+              basic:
+                value:
+                  serviceAddressId: 12345
+              filtered:
+                value:
+                  serviceAddressId: 12345
+                  statuses:
+                    - inside
+                    - pending
+      responses:
+        '200':
+          description: Matching tracked assets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TrackedAssetListItem'
+              examples:
+                sample:
+                  value:
+                    - id: 101
+                      euid: 24E124128C000001
+                      name: Cart 1
+                      isActive: true
+                      status: inside
+                      statusAt: '2026-04-05T12:34:56Z'
+                      customerId: 9001
+                      serviceAddressId: 12345
+                      assetType: Shopping Cart
+                      customerName: Acme Health
+                      createdAt: '2026-03-01T10:00:00Z'
+                      updatedAt: '2026-04-01T11:00:00Z'
+                      lastEvent:
+                        id: 7001
+                        deviceId: 101
+                        createdAt: '2026-04-05T12:30:00Z'
+                        deviceLatitude: 49.8951
+                        deviceLongitude: -97.1384
+                        deviceBatteryLevel: good
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /tracked-assets/{id}:
+    get:
+      tags:
+        - Tracked Assets
+      summary: Get tracked asset by local id
+      description: |
+        Returns one tracked asset using the local `trackers.id`.
+      operationId: getTrackedAssetById
+      parameters:
+        - $ref: '#/components/parameters/TrackerId'
+      responses:
+        '200':
+          description: Tracked asset
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrackedAssetDetail'
+              examples:
+                sample:
+                  $ref: '#/components/examples/TrackedAssetDetailExample'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/AssetNotFound'
+
+  /tracked-assets/euid/{euid}:
+    get:
+      tags:
+        - Tracked Assets
+      summary: Get tracked asset by EUID
+      description: |
+        Returns one tracked asset using `trackers.dev_eui`.
+
+        The server normalizes the incoming EUID by trimming and uppercasing it
+        before lookup. Invalid or unknown values return the same 404 response.
+      operationId: getTrackedAssetByEuid
+      parameters:
+        - $ref: '#/components/parameters/TrackerEuid'
+      responses:
+        '200':
+          description: Tracked asset
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrackedAssetDetail'
+              examples:
+                sample:
+                  $ref: '#/components/examples/TrackedAssetDetailExample'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/AssetNotFound'
+
+  /tracked-assets/{id}/status:
+    post:
+      tags:
+        - Tracked Assets
+      summary: Log a tracked asset status update request
+      description: |
+        Temporary compatibility endpoint for the legacy tracked-assets update call.
+
+        For launch, this endpoint accepts the posted status/event payload, logs it
+        server-side for later reconciliation, and returns the current tracked-asset
+        compatibility payload.
+
+        It does not update retrieval, lifecycle, geofence, or other tracker business
+        state.
+      operationId: postTrackedAssetStatus
+      parameters:
+        - $ref: '#/components/parameters/TrackerId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TrackedAssetStatusUpdateRequest'
+            examples:
+              legacyEvent:
+                value:
+                  id: 101
+                  event: retrieval_requested
+                  latitude: 49.8951
+                  longitude: -97.1384
+                  photoTaken: true
+                  euid: 24E124128C000001
+                  employeeId: 44
+              statusOnly:
+                value:
+                  id: 101
+                  status: picked_up
+                  latitude: 49.8951
+                  longitude: -97.1384
+                  photoTaken: false
+                  euid: 24E124128C000001
+                  userId: 88
+              bothFields:
+                value:
+                  id: 101
+                  status: picked_up
+                  event: retrieval_requested
+                  latitude: 49.8951
+                  longitude: -97.1384
+                  photoTaken: true
+                  euid: 24E124128C000001
+                  employeeId: 44
+      responses:
+        '200':
+          description: Current tracked asset payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrackedAssetDetail'
+              examples:
+                sample:
+                  $ref: '#/components/examples/TrackedAssetDetailExample'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/AssetNotFound'
+        '422':
+          description: |
+            Validation error.
+
+            Common cases include:
+            - request body `id` does not match the route `id`
+            - neither `status` nor `event` is present
+            - provided `euid` does not match the resolved tracker
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+components:
+  parameters:
+    TrackerId:
+      name: id
+      in: path
+      required: true
+      description: Local tracker id (`trackers.id`)
+      schema:
+        type: integer
+        minimum: 1
+      example: 101
+    TrackerEuid:
+      name: euid
+      in: path
+      required: true
+      description: Tracker DevEUI. The server trims and uppercases before lookup.
+      schema:
+        type: string
+        pattern: '^[0-9A-Fa-f]{16}$'
+      example: 24E124128C000001
+
+  responses:
+    Unauthorized:
+      description: Authentication is required or the provided credentials are invalid
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorMessage'
+          example:
+            message: Unauthenticated.
+    Forbidden:
+      description: The authenticated client does not have access to this resource
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorMessage'
+          example:
+            message: Forbidden.
+    AssetNotFound:
+      description: No tracker matched the given identifier
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorMessage'
+          example:
+            message: Asset not found.
+    ValidationError:
+      description: Request validation failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ValidationError'
+          example:
+            message: The given data was invalid.
+            errors:
+              statuses.0:
+                - The selected statuses.0 is invalid.
+
+  examples:
+    TrackedAssetDetailExample:
+      value:
+        id: 101
+        euid: 24E124128C000001
+        name: Cart 1
+        isActive: true
+        status: inside
+        statusAt: '2026-04-05T12:34:56Z'
+        customerId: 9001
+        serviceAddressId: 12345
+        assetType: Shopping Cart
+        customerName: Acme Health
+        createdAt: '2026-03-01T10:00:00Z'
+        updatedAt: '2026-04-01T11:00:00Z'
+        availableTransitions: []
+        lastEvent:
+          id: 7001
+          deviceId: 101
+          createdAt: '2026-04-05T12:30:00Z'
+          deviceLatitude: 49.8951
+          deviceLongitude: -97.1384
+          deviceBatteryLevel: good
+
+  schemas:
+    ErrorMessage:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+
+    ValidationError:
+      type: object
+      required:
+        - message
+        - errors
+      properties:
+        message:
+          type: string
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+
+    SearchByServiceAddressRequest:
+      type: object
+      required:
+        - serviceAddressId
+      properties:
+        serviceAddressId:
+          type: integer
+          minimum: 1
+          description: Scheduler service address id
+        statuses:
+          type: array
+          description: Optional geofence-state filter
+          items:
+            $ref: '#/components/schemas/TrackedAssetStatus'
+
+    TrackedAssetStatus:
+      type: string
+      enum:
+        - inside
+        - outside
+        - pending
+
+    BatteryLevel:
+      type: string
+      enum:
+        - good
+        - low
+        - bad
+
+    LastEvent:
+      type: object
+      required:
+        - id
+        - deviceId
+        - createdAt
+        - deviceLatitude
+        - deviceLongitude
+        - deviceBatteryLevel
+      properties:
+        id:
+          type: integer
+          nullable: true
+        deviceId:
+          type: integer
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+        deviceLatitude:
+          type: number
+          format: double
+          nullable: true
+        deviceLongitude:
+          type: number
+          format: double
+          nullable: true
+        deviceBatteryLevel:
+          allOf:
+            - $ref: '#/components/schemas/BatteryLevel'
+          nullable: true
+
+    TransitionApp:
+      type: object
+      required:
+        - name
+        - manager
+        - properties
+      properties:
+        name:
+          type: string
+        manager:
+          type: boolean
+        properties:
+          type: array
+          items:
+            type: string
+
+    AvailableTransition:
+      type: object
+      required:
+        - type
+        - apps
+      properties:
+        type:
+          type: string
+        apps:
+          type: array
+          items:
+            $ref: '#/components/schemas/TransitionApp'
+
+    TrackedAssetBase:
+      type: object
+      required:
+        - id
+        - euid
+        - name
+        - isActive
+        - status
+        - statusAt
+        - customerId
+        - serviceAddressId
+        - assetType
+        - customerName
+        - createdAt
+        - updatedAt
+        - lastEvent
+      properties:
+        id:
+          type: integer
+        euid:
+          type: string
+          pattern: '^[0-9A-F]{16}$'
+        name:
+          type: string
+        isActive:
+          type: boolean
+        status:
+          $ref: '#/components/schemas/TrackedAssetStatus'
+        statusAt:
+          type: string
+          format: date-time
+          nullable: true
+        customerId:
+          type: integer
+          nullable: true
+          description: Scheduler customer id
+        serviceAddressId:
+          type: integer
+          nullable: true
+          description: Scheduler service address id
+        assetType:
+          type: string
+          description: Asset type name, or `cart` when no asset type is linked
+        customerName:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        lastEvent:
+          $ref: '#/components/schemas/LastEvent'
+
+    TrackedAssetListItem:
+      allOf:
+        - $ref: '#/components/schemas/TrackedAssetBase'
+
+    TrackedAssetDetail:
+      allOf:
+        - $ref: '#/components/schemas/TrackedAssetBase'
+        - type: object
+          required:
+            - availableTransitions
+          properties:
+            availableTransitions:
+              type: array
+              description: Temporary compatibility stub. Currently returned as an empty array.
+              items:
+                $ref: '#/components/schemas/AvailableTransition'
+
+    TrackedAssetStatusUpdateRequest:
+      type: object
+      required:
+        - id
+      anyOf:
+        - required:
+            - status
+        - required:
+            - event
+      properties:
+        id:
+          type: integer
+          minimum: 1
+          description: Must match the route tracker id
+        status:
+          type: string
+          minLength: 1
+          description: Compatibility status value. Logged as received.
+        event:
+          type: string
+          minLength: 1
+          description: Legacy compatibility event value. Logged as received.
+        longitude:
+          type: number
+          format: double
+          minimum: -180
+          maximum: 180
+        latitude:
+          type: number
+          format: double
+          minimum: -90
+          maximum: 90
+        photoTaken:
+          type: boolean
+        euid:
+          type: string
+          pattern: '^[0-9A-Fa-f]{16}$'
+          description: |
+            Optional compatibility EUID. The server normalizes it and requires it to
+            match the resolved tracker when supplied.
+        employeeId:
+          type: integer
+          minimum: 1
+        userId:
+          type: integer
+          minimum: 1

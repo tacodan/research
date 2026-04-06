@@ -1,0 +1,11 @@
+apis:
+  tracker@v1:
+    root: ./openapi/openapi.yaml
+
+rules:
+  operation-summary:
+    severity: error
+  operation-description:
+    severity: warn
+  no-unused-components:
+    severity: warn

@@ -196,7 +196,7 @@ A small working prototype lives in this folder:
 - `POC/redocly.yaml`
 - `POC/README.md`
 
-That prototype is intentionally small. It is there to show what the source file actually looks like and how a tracker API would be structured in practice.
+That prototype is intentionally small. It is there to show what the source file actually looks like and how a tracker API would be structured in practice..
 
 ## Sources
 

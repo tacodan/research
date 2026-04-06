@@ -1,14 +1,18 @@
 openapi: 3.0.3
 info:
-  title: Kept Tracked Assents Legacy Retrieval API
+  title: Kept Tracked Assets Legacy Retrieval API
   version: 0.1.0
   description: |
-    Public API reference for Kept tracked-assets legacy recovery endpoints.
+    Public API reference for Kept tracked-assets legacy retrieval endpoints.
+
+    Authenticate requests by sending a bearer token in the `Authorization` header.
 servers:
   - url: https://iot.keptcompanies.com/api
     description: Production API base path
 tags:
   - name: Tracked Assets
+security:
+  - bearerAuth: []
 paths:
   /tracked-assets/searchByServiceAddress:
     post:
@@ -213,6 +217,13 @@ paths:
                 $ref: '#/components/schemas/ValidationError'
 
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: |
+        Send your API token in the `Authorization` header as `Bearer <token>`.
+
   parameters:
     TrackerId:
       name: id

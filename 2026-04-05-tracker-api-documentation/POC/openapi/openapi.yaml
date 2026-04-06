@@ -225,7 +225,9 @@ components:
     bearerAuth:
       type: http
       scheme: bearer
-      bearerFormat: JWT
+      description: |
+        Authenticate by sending your API token in the `Authorization` header as
+        `Bearer <token>`.
 
   parameters:
     TrackerId:

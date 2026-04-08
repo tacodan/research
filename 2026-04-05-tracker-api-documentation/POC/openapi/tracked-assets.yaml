@@ -23,6 +23,10 @@ paths:
         Returns tracked assets assigned to the given Scheduler service address id.
 
         This is a compatibility endpoint and intentionally keeps the legacy POST route.
+
+        When `statuses` is provided, values are trimmed and matched
+        case-insensitively. `On Site` normalizes to `inside` and `Off Site`
+        normalizes to `outside`.
       operationId: searchTrackedAssetsByServiceAddress
       requestBody:
         required: true
@@ -34,12 +38,18 @@ paths:
               basic:
                 value:
                   serviceAddressId: 12345
-              filtered:
+              filteredCanonical:
                 value:
                   serviceAddressId: 12345
                   statuses:
                     - inside
                     - pending
+              filteredAliases:
+                value:
+                  serviceAddressId: 12345
+                  statuses:
+                    - ' On Site '
+                    - off site
       responses:
         '200':
           description: Matching tracked assets
@@ -193,10 +203,10 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TrackedAssetDetail'
+                $ref: '#/components/schemas/TrackedAssetStatusUpdateResponse'
               examples:
                 sample:
-                  $ref: '#/components/examples/TrackedAssetDetailExample'
+                  $ref: '#/components/examples/TrackedAssetStatusUpdateResponseExample'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -296,7 +306,51 @@ components:
         customerName: Acme Health
         createdAt: '2026-03-01T10:00:00Z'
         updatedAt: '2026-04-01T11:00:00Z'
-        availableTransitions: []
+        availableTransitions:
+          - id: 1
+            type: Pickup
+            properties:
+              - euid
+              - photoTaken
+              - gps
+          - id: 2
+            type: Unretrievable
+            properties:
+              - photoTaken
+              - gps
+        lastEvent:
+          id: 7001
+          deviceId: 101
+          createdAt: '2026-04-05T12:30:00Z'
+          deviceLatitude: 49.8951
+          deviceLongitude: -97.1384
+          deviceBatteryLevel: good
+    TrackedAssetStatusUpdateResponseExample:
+      value:
+        id: 101
+        euid: 24E124128C000001
+        name: Cart 1
+        isActive: true
+        status: inside
+        statusAt: '2026-04-05T12:34:56Z'
+        customerId: 9001
+        serviceAddressId: 12345
+        assetType: Shopping Cart
+        customerName: Acme Health
+        createdAt: '2026-03-01T10:00:00Z'
+        updatedAt: '2026-04-01T11:00:00Z'
+        availableTransitions:
+          - id: 1
+            type: Pickup
+            properties:
+              - euid
+              - photoTaken
+              - gps
+          - id: 2
+            type: Unretrievable
+            properties:
+              - photoTaken
+              - gps
         lastEvent:
           id: 7001
           deviceId: 101
@@ -340,9 +394,25 @@ components:
           description: Scheduler service address id
         statuses:
           type: array
-          description: Optional geofence-state filter
+          description: |
+            Optional geofence-state filter.
+
+            Values are trimmed and matched case-insensitively. Accepted canonical
+            values are `inside`, `outside`, and `pending`. `On Site` and
+            `Off Site` are also accepted as request aliases and normalize to
+            `inside` and `outside`.
           items:
-            $ref: '#/components/schemas/TrackedAssetStatus'
+            $ref: '#/components/schemas/TrackedAssetStatusFilterInput'
+
+    TrackedAssetStatusFilterInput:
+      type: string
+      description: |
+        Request-only tracked asset status filter value.
+
+        Accepted canonical values are `inside`, `outside`, and `pending`.
+        `On Site` and `Off Site` are accepted aliases for request filtering and
+        normalize to `inside` and `outside`.
+      example: On Site
 
     TrackedAssetStatus:
       type: string
@@ -391,34 +461,21 @@ components:
             - $ref: '#/components/schemas/BatteryLevel'
           nullable: true
 
-    TransitionApp:
+    AvailableTransition:
       type: object
       required:
-        - name
-        - manager
+        - id
+        - type
         - properties
       properties:
-        name:
+        id:
+          type: integer
+        type:
           type: string
-        manager:
-          type: boolean
         properties:
           type: array
           items:
             type: string
-
-    AvailableTransition:
-      type: object
-      required:
-        - type
-        - apps
-      properties:
-        type:
-          type: string
-        apps:
-          type: array
-          items:
-            $ref: '#/components/schemas/TransitionApp'
 
     TrackedAssetBase:
       type: object
@@ -488,7 +545,20 @@ components:
           properties:
             availableTransitions:
               type: array
-              description: Temporary compatibility stub. Currently returned as an empty array.
+              description: Compatibility transition definitions returned by the GET detail endpoints.
+              items:
+                $ref: '#/components/schemas/AvailableTransition'
+
+    TrackedAssetStatusUpdateResponse:
+      allOf:
+        - $ref: '#/components/schemas/TrackedAssetBase'
+        - type: object
+          required:
+            - availableTransitions
+          properties:
+            availableTransitions:
+              type: array
+              description: Compatibility transition definitions returned by the GET detail endpoints and this POST response.
               items:
                 $ref: '#/components/schemas/AvailableTransition'
 

@@ -1,41 +1,4 @@
 	<?php
-  
-  function autoCompleteCustomerSearch($post) {
-		global $session, $common, $dbi, $bD;
-		
-    //TODO: permission checking / brands etc etc
-    
-		$cleanSearch = str_replace("%", "", $_GET['query']);
-    $searchTerm = "%" . $cleanSearch . "%";
-		
-		//later we need to add redis caching on this
-						
-		$q = "select * from ".CUSTOMERS_TABLE." where company_name like ? and num_service_addresses > 0 and brand=? limit 50;";
-		$s = $dbi->prepare($q);
-		$s->bind_param("si", $searchTerm, $bD->brandID);
-		$results = $dbi->getAssoc($s);
-		
-		$finalResults = array();
-		if($results != 0) {
-			$i=0;
-			foreach($results as $a => $data) {
-				$formatResult = $data['company_name'];
-				$finalResults[$i]['value'] = htmlspecialchars_decode($formatResult, ENT_QUOTES);
-				
-        $retData['id'] = $data['id'];
-        //$retData['img'] = $data['img'];
-				//$retData['email'] = $data['email'];        
-        //$retData['group'] = $session->group_cache_info[$data['user_group']]['name'];
-        //$retData['initals'] = strtoupper(substr($data['first_name'], 0, 1)) . strtoupper(substr($data['last_name'], 0, 1));
-        //$retData['profile_img'] = $data['profile_img'];        
-        $finalResults[$i]['data'] = $retData;				
-				$i++;
-			}
-		}		
-		$printResults['suggestions'] = $finalResults;
-		echo json_encode($printResults);
-		exit;
-	}
 
   function processGetListTableDataOpenSearch($post) {
     global $session, $dbi, $sD, $common, $bD, $dataCache;
@@ -208,7 +171,7 @@
       //$bindTypes .= "s";
       //$bindValues[] = "%" . str_replace("%", "", $post['addressFilter']) . "%";
       //$numActiveCustomFilters ++;
-      $builder->addMustMatch('addy_1', $post['addressFilter']);
+      $builder->addMustContainsWildcard('addy_1.keyword', $post['addressFilter']);
     }
     
     //customer city filtering
@@ -217,7 +180,7 @@
       //$bindTypes .= "s";
       //$bindValues[] = "%" . str_replace("%", "", $post['cityFilter']) . "%";
       //$numActiveCustomFilters ++;
-      $builder->addMustMatch('city', $post['cityFilter']);
+      $builder->addMustContainsWildcard('city.keyword', $post['cityFilter']);
     }
     
     //state filtering
@@ -273,7 +236,7 @@
       //$bindValues[] = "%" . str_replace("%", "", $post['customerNumberFilter']) . "%";
       //$numActiveCustomFilters ++;
       
-      $builder->addMustWildcard('account_number', $post['customerNumberFilter']);
+      $builder->addMustContainsWildcard('account_number', $post['customerNumberFilter']);
     }    
     
     //add in left join for users first names (needing the ability to sort by first name)

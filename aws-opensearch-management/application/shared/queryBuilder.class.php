@@ -46,6 +46,23 @@ class SearchQueryBuilder {
     ];
     return $this;    
   }
+
+  public function addMustContainsWildcard(string $field, string $text): self {
+    $text = trim(str_replace(['*', '?'], '', $text));
+    if($text === '') {
+      return $this;
+    }
+
+    $this->mustClauses[] = [
+      'wildcard' => [
+        $field => [
+          'value' => '*' . $text . '*',
+          'case_insensitive' => true
+        ]
+      ]
+    ];
+    return $this;
+  }
   
   public function addMustMultiMatch(string $text, array $fields): self {
     $this->mustClauses[] = ['multi_match' => ['query' => $text, 'fields' => $fields]];

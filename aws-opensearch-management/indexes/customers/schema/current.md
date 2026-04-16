@@ -1,19 +1,20 @@
 # Customer Schema Current State
 
-This page captures the active customer search document contract as confirmed by the CRM application code currently stored in this project.
+This page captures the active customer search document contract as validated from the CRM application code and the live OpenSearch recovery work completed on `2026-04-16`.
 
 ## Status
 
-The current CRM code targets schema version `5`.
+The current CRM code targets schema version `5`, and the live OpenSearch setup was rebuilt to match that version.
 
-The following items are confirmed from the code:
+The following items are validated:
 
-- the alias `customers-search`
-- a schema version variable set to `5`
-- alias-based schema transitions
-- a customer document with top-level fields plus nested `service_addresses` and `contacts`
-
-The live alias target in OpenSearch has not yet been independently validated from the domain itself, so this page reflects current application-code intent.
+- search alias: `customers-search`
+- current live write index: `customers_v5`
+- CRM schema version variable: `5`
+- alias-based schema transitions are still the intended model
+- the customer document contains top-level fields plus nested `service_addresses` and `contacts`
+- `contacts.billing_contact` must be mapped as `integer` because the current PHP code sends `0` / `1`
+- `sales_rep_name` must have `fielddata = true` because the current PHP search path sorts directly on `sales_rep_name`
 
 ## Confirmed Conventions
 
@@ -21,73 +22,103 @@ The live alias target in OpenSearch has not yet been independently validated fro
 - Schema changes are managed with versioned indexes and alias swaps.
 - Historical mappings and migration procedures are documented separately from this page.
 
+## Live Validated Index State
+
+- Alias: `customers-search`
+- Current index: `customers_v5`
+- Alias write flag: `true`
+- Canonical mapping JSON: [customers_v5.mapping.json](customers_v5.mapping.json)
+- Canonical Dev Tools request: [customers_v5.create-index.http](customers_v5.create-index.http)
+
+To re-check the live mapping later, use:
+
+```http
+GET /customers_v5/_mapping
+GET /_cat/aliases/customers-search?v
+```
+
 ## Current Document Shape
 
 ### Top-Level Fields
 
-| Field | Notes |
-| --- | --- |
-| `id` | Customer identifier |
-| `brand` | Customer brand |
-| `num_service_addresses` | Count of service addresses |
-| `addy_1` | Primary address line |
-| `city` | City |
-| `state` | State |
-| `account_number` | Account number, nullable in code |
-| `sales_rep_id` | Sales representative identifier |
-| `sales_rep_name` | Derived from cached user data |
-| `company_name` | Company name |
-| `last_updated` | Indexed as an ISO 8601 timestamp string |
-| `status_state` | Primary status |
-| `status_state_sub` | Secondary status |
-| `service_addresses` | Nested array of service-address objects |
-| `contacts` | Nested array of contact objects |
+| Field | Mapping | Notes |
+| --- | --- | --- |
+| `id` | `keyword` | Customer identifier |
+| `brand` | `keyword` | Customer brand |
+| `num_service_addresses` | `integer` | Count of service addresses |
+| `addy_1` | `text` + `.keyword` | Primary address line |
+| `city` | `text` + `.keyword` | City |
+| `state` | `keyword` | State |
+| `account_number` | `keyword` | Account number, nullable in code |
+| `sales_rep_id` | `keyword` | Sales representative identifier |
+| `sales_rep_name` | `text` + `.keyword`, `fielddata=true` | Derived from cached user data; raw field is used for sorting in current PHP |
+| `company_name` | `text` + `.keyword` | Company name |
+| `last_updated` | `date` | Indexed as an ISO 8601 timestamp string |
+| `status_state` | `keyword` | Primary status |
+| `status_state_sub` | `keyword` | Secondary status |
+| `service_addresses` | `nested` | Nested array of service-address objects |
+| `contacts` | `nested` | Nested array of contact objects |
 
 ### Service Address Objects
 
-Each `service_addresses[]` item currently includes:
+Each `service_addresses[]` item is currently mapped as:
 
-- `branch_id`
-- `address_name`
-- `addy_1`
-- `addy_2`
-- `city`
-- `state`
-- `zip`
-- `location` with `lat` and `lon`
-- `sales_rep_id`
-- `service_status`
+| Field | Mapping |
+| --- | --- |
+| `branch_id` | `keyword` |
+| `address_name` | `text` + `.keyword` |
+| `addy_1` | `text` + `.keyword` |
+| `addy_2` | `text` + `.keyword` |
+| `city` | `text` + `.keyword` |
+| `state` | `keyword` |
+| `zip` | `keyword` |
+| `location` | `geo_point` |
+| `sales_rep_id` | `keyword` |
+| `service_status` | `keyword` |
 
 ### Contact Objects
 
-Each `contacts[]` item currently includes:
+Each `contacts[]` item is currently mapped as:
 
-- `primary_contact`
-- `first_name`
-- `last_name`
-- `position`
-- `email`
-- `office_phone`
-- `office_ext`
-- `cell`
-- `billing_contact`
-- `addy_1`
-- `addy_2`
-- `city`
-- `state`
-- `zip`
+| Field | Mapping | Notes |
+| --- | --- | --- |
+| `primary_contact` | `boolean` | Current PHP casts this field to boolean |
+| `first_name` | `text` + `.keyword` |  |
+| `last_name` | `text` + `.keyword` |  |
+| `position` | `text` + `.keyword` |  |
+| `email` | `keyword` |  |
+| `office_phone` | `keyword` |  |
+| `office_ext` | `keyword` |  |
+| `cell` | `keyword` |  |
+| `billing_contact` | `integer` | Live fix applied during recovery because current PHP sends `0` / `1`, not boolean JSON |
+| `addy_1` | `text` + `.keyword` |  |
+| `addy_2` | `text` + `.keyword` |  |
+| `city` | `text` + `.keyword` |  |
+| `state` | `keyword` |  |
+| `zip` | `keyword` |  |
 
-## Still Needs Validation
+## Recovery Notes
 
-These items are still not confirmed from a live mapping export:
+These live fixes were required during the rebuild:
 
-- Active versioned index currently behind `customers-search`
-- Field mappings and analyzers for the version 5 index
-- Exact nested mappings for `service_addresses` and `contacts`
-- Any additional derived fields added outside `getCustomerDocuments(...)`
+1. `contacts.billing_contact` was first mapped as `boolean`, but bulk indexing failed because the current PHP writes integer values. The live mapping was corrected to `integer`.
+2. Sorting by the sales-rep column failed because the current PHP sorts on `sales_rep_name` instead of `sales_rep_name.keyword`. The live mapping was updated with `fielddata = true` on `sales_rep_name`.
+
+These are not theoretical notes. They were observed and corrected during the live rebuild on `2026-04-16`.
+
+## Exact Dev Tools Shape
+
+The canonical copy-paste schema files live beside this spec:
+
+- [customers_v5.mapping.json](customers_v5.mapping.json)
+- [customers_v5.create-index.http](customers_v5.create-index.http)
+
+These files should be updated whenever the live customer index mapping changes.
 
 ## Related Docs
 
+- [customers_v5.mapping.json](customers_v5.mapping.json)
+- [customers_v5.create-index.http](customers_v5.create-index.http)
 - [history/v1.md](history/v1.md)
 - [../indexing-pipeline.md](../indexing-pipeline.md)
 - [../migrations/v1-to-v2.md](../migrations/v1-to-v2.md)

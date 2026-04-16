@@ -1,0 +1,166 @@
+{
+  "mappings": {
+    "properties": {
+      "id": { "type": "keyword" },
+      "brand": { "type": "keyword" },
+      "num_service_addresses": { "type": "integer" },
+      "addy_1": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "city": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "state": { "type": "keyword" },
+      "account_number": { "type": "keyword" },
+      "sales_rep_id": { "type": "keyword" },
+      "sales_rep_name": {
+        "type": "text",
+        "fielddata": true,
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "company_name": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "last_updated": { "type": "date" },
+      "status_state": { "type": "keyword" },
+      "status_state_sub": { "type": "keyword" },
+      "service_addresses": {
+        "type": "nested",
+        "properties": {
+          "branch_id": { "type": "keyword" },
+          "address_name": {
+            "type": "text",
+            "fields": {
+              "keyword": {
+                "type": "keyword",
+                "ignore_above": 256
+              }
+            }
+          },
+          "addy_1": {
+            "type": "text",
+            "fields": {
+              "keyword": {
+                "type": "keyword",
+                "ignore_above": 256
+              }
+            }
+          },
+          "addy_2": {
+            "type": "text",
+            "fields": {
+              "keyword": {
+                "type": "keyword",
+                "ignore_above": 256
+              }
+            }
+          },
+          "city": {
+            "type": "text",
+            "fields": {
+              "keyword": {
+                "type": "keyword",
+                "ignore_above": 256
+              }
+            }
+          },
+          "state": { "type": "keyword" },
+          "zip": { "type": "keyword" },
+          "location": { "type": "geo_point" },
+          "sales_rep_id": { "type": "keyword" },
+          "service_status": { "type": "keyword" }
+        }
+      },
+      "contacts": {
+        "type": "nested",
+        "properties": {
+          "primary_contact": { "type": "boolean" },
+          "first_name": {
+            "type": "text",
+            "fields": {
+              "keyword": {
+                "type": "keyword",
+                "ignore_above": 256
+              }
+            }
+          },
+          "last_name": {
+            "type": "text",
+            "fields": {
+              "keyword": {
+                "type": "keyword",
+                "ignore_above": 256
+              }
+            }
+          },
+          "position": {
+            "type": "text",
+            "fields": {
+              "keyword": {
+                "type": "keyword",
+                "ignore_above": 256
+              }
+            }
+          },
+          "email": { "type": "keyword" },
+          "office_phone": { "type": "keyword" },
+          "office_ext": { "type": "keyword" },
+          "cell": { "type": "keyword" },
+          "billing_contact": { "type": "integer" },
+          "addy_1": {
+            "type": "text",
+            "fields": {
+              "keyword": {
+                "type": "keyword",
+                "ignore_above": 256
+              }
+            }
+          },
+          "addy_2": {
+            "type": "text",
+            "fields": {
+              "keyword": {
+                "type": "keyword",
+                "ignore_above": 256
+              }
+            }
+          },
+          "city": {
+            "type": "text",
+            "fields": {
+              "keyword": {
+                "type": "keyword",
+                "ignore_above": 256
+              }
+            }
+          },
+          "state": { "type": "keyword" },
+          "zip": { "type": "keyword" }
+        }
+      }
+    }
+  }
+}

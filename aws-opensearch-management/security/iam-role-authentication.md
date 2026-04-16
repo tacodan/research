@@ -23,13 +23,16 @@ Create the application role inside OpenSearch Dashboards:
 4. Add index permissions for the required index patterns.
 5. Save the role.
 
-Example values from the source note:
+## Live Validated Setup
+
+The current rebuilt domain was configured with:
 
 - OpenSearch role name: `crm_app_role`
-- Index pattern example: `customers*`
-- Action groups called out: `read`, `write`, `delete`
+- Cluster permission used: `cluster_composite_ops`
+- Index pattern used: `customers*`
+- Index action group used: `crud`
 
-Treat those values as examples, not confirmed production settings.
+This setup was validated by successful bulk indexing from the CRM application on `2026-04-16`.
 
 ## IAM Role Mapping
 
@@ -41,6 +44,14 @@ After the OpenSearch role exists:
 4. Save the mapping.
 
 The intended result is passwordless access for workloads already running under that IAM role.
+
+## Live Validated Mapping
+
+The current rebuilt domain was mapped to this backend role:
+
+- `arn:aws:iam::794148609003:role/fw-prod-instance-role`
+
+That ARN was entered under `Backend roles`, not under `Users`.
 
 ## Access Boundaries
 

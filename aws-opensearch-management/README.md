@@ -53,15 +53,15 @@ Turn the external notes in `inbox/` into maintained, canonical docs without losi
 | Domain inventory | Starter | Needs live domain values and ownership details. |
 | Operations runbook | Starter | Needs production commands, alarm names, and recovery steps. |
 | IAM role auth | Curated | Distilled from the general setup note. |
-| SearchQueryBuilder | Curated | Distilled from the application note and kept shared across indexes. |
-| Customer schema current state | Pending confirmation | Alias and versioning approach are known, active schema version is not yet confirmed. |
+| SearchQueryBuilder | Curated | Updated against the shared PHP implementation and the original application note. |
+| Customer schema current state | Code-confirmed | Current CRM code targets schema version 5; live alias target still needs domain validation. |
 | Customer schema v1 history | Curated | Historical v1 mapping and creation flow extracted from the source note. |
-| Customer indexing pipeline | Curated | Worker, flags, alias write path, and reindex lifecycle documented from source notes. |
+| Customer indexing pipeline | Curated | Worker, flags, alias write path, and reindex lifecycle documented from both notes and CRM code. |
 | Customer v1 to v2 migration | Curated | Historical zero-downtime migration procedure extracted from the source note. |
 
 ## Next Update
 
 - Fill in the live domain metadata in `inventory.md`.
-- Confirm the active customer schema version and update `indexes/customers/schema/current.md`.
+- Validate the live alias target in OpenSearch against the code-documented schema version 5.
 - Add approved operational commands and alarm names to `runbook.md`.
 - Add dated entries to `change-log.md` whenever access, schema, or migration docs change.

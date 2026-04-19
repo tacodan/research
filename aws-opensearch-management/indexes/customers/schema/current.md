@@ -1,39 +1,43 @@
 # Customer Schema Current State
 
-This page captures the active customer search document contract as validated from the CRM application code and the live OpenSearch recovery work completed on `2026-04-16`.
+This page captures the active customer search document contract as validated from the CRM application code and the live OpenSearch recovery and cutover work completed on `2026-04-16`.
 
 ## Status
 
-The current CRM code targets schema version `5`, and the live OpenSearch setup was rebuilt to match that version.
+The current customer indexing code targets schema version `6`, and the live OpenSearch write path has been cut over to match that version.
 
 The following items are validated:
 
 - search alias: `customers-search`
-- current live write index: `customers_v5`
-- CRM schema version variable: `5`
+- current live write index: `customers_v6`
+- current CRM indexing schema version variable: `6`
+- previous active index retained for rollback: `customers_v5`
+- production customer search reads remain DB-backed
 - alias-based schema transitions are still the intended model
 - the customer document contains top-level fields plus nested `service_addresses` and `contacts`
+- the current document includes top-level `source` and `reassigned_status`
 - `contacts.billing_contact` must be mapped as `integer` because the current PHP code sends `0` / `1`
 - `sales_rep_name` must have `fielddata = true` because the current PHP search path sorts directly on `sales_rep_name`
 
 ## Confirmed Conventions
 
-- Application code is expected to read from the alias instead of hard-coding a versioned index name.
+- Application code is expected to read from the alias instead of hard-coding a versioned index name when the OpenSearch read path is enabled.
 - Schema changes are managed with versioned indexes and alias swaps.
+- Production user-facing customer search still uses the DB path as of `2026-04-16`.
 - Historical mappings and migration procedures are documented separately from this page.
 
 ## Live Validated Index State
 
 - Alias: `customers-search`
-- Current index: `customers_v5`
+- Current index: `customers_v6`
 - Alias write flag: `true`
-- Canonical mapping JSON: [customers_v5.mapping.json](customers_v5.mapping.json)
-- Canonical Dev Tools request: [customers_v5.create-index.http](customers_v5.create-index.http)
+- Canonical mapping JSON: [customers_v6.mapping.json](customers_v6.mapping.json)
+- Canonical Dev Tools request: [customers_v6.create-index.http](customers_v6.create-index.http)
 
 To re-check the live mapping later, use:
 
 ```http
-GET /customers_v5/_mapping
+GET /customers_v6/_mapping
 GET /_cat/aliases/customers-search?v
 ```
 
@@ -50,6 +54,8 @@ GET /_cat/aliases/customers-search?v
 | `city` | `text` + `.keyword` | City |
 | `state` | `keyword` | State |
 | `account_number` | `keyword` | Account number, nullable in code |
+| `source` | `integer` | Lead source or source identifier |
+| `reassigned_status` | `integer` | Reassignment flag used by customer filters |
 | `sales_rep_id` | `keyword` | Sales representative identifier |
 | `sales_rep_name` | `text` + `.keyword`, `fielddata=true` | Derived from cached user data; raw field is used for sorting in current PHP |
 | `company_name` | `text` + `.keyword` | Company name |
@@ -97,12 +103,14 @@ Each `contacts[]` item is currently mapped as:
 | `state` | `keyword` |  |
 | `zip` | `keyword` |  |
 
-## Recovery Notes
+## Recovery And Cutover Notes
 
 These live fixes were required during the rebuild:
 
 1. `contacts.billing_contact` was first mapped as `boolean`, but bulk indexing failed because the current PHP writes integer values. The live mapping was corrected to `integer`.
 2. Sorting by the sales-rep column failed because the current PHP sorts on `sales_rep_name` instead of `sales_rep_name.keyword`. The live mapping was updated with `fielddata = true` on `sales_rep_name`.
+3. Schema version `6` added top-level `source` and `reassigned_status` so the OpenSearch document contract could support the current CRM filter set.
+4. A temporary dual-write migration was used to backfill `customers_v6`, after which the `customers-search` alias was moved from `customers_v5` to `customers_v6`.
 
 These are not theoretical notes. They were observed and corrected during the live rebuild on `2026-04-16`.
 
@@ -110,13 +118,17 @@ These are not theoretical notes. They were observed and corrected during the liv
 
 The canonical copy-paste schema files live beside this spec:
 
-- [customers_v5.mapping.json](customers_v5.mapping.json)
-- [customers_v5.create-index.http](customers_v5.create-index.http)
+- [customers_v6.mapping.json](customers_v6.mapping.json)
+- [customers_v6.create-index.http](customers_v6.create-index.http)
+
+The previous `customers_v5` artifacts are still kept beside them as rollback and migration references.
 
 These files should be updated whenever the live customer index mapping changes.
 
 ## Related Docs
 
+- [customers_v6.mapping.json](customers_v6.mapping.json)
+- [customers_v6.create-index.http](customers_v6.create-index.http)
 - [customers_v5.mapping.json](customers_v5.mapping.json)
 - [customers_v5.create-index.http](customers_v5.create-index.http)
 - [history/v1.md](history/v1.md)

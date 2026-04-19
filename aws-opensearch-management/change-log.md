@@ -4,6 +4,16 @@ Use this file as the reverse-chronological log for changes and notable events af
 
 ## 2026-04-16
 
+### Customer V6 Backfill And Cutover
+
+- Added schema version `6` for the customer index with new top-level fields `source` and `reassigned_status`.
+- Created canonical schema artifacts for `customers_v6` as both JSON and Dev Tools copy-paste files.
+- Enabled temporary dual write from schema version `5` to schema version `6` during the migration.
+- Rebuilt both `customers_v5` and `customers_v6` to `130209` documents before cutover.
+- Moved the `customers-search` alias from `customers_v5` to `customers_v6` and marked `customers_v6` as the write index.
+- Validated live writes into `customers_v6` after the alias cutover.
+- Production customer search reads remained DB-backed after the indexing migration; the read-path switch is still a separate rollout.
+
 ### Live Domain Rebuilt
 
 - Recreated the customer index on the new OpenSearch domain as `customers_v5`.

@@ -4,7 +4,9 @@ This page captures the current customer indexing flow described by both the raw 
 
 ## Overview
 
-Database changes mark customer records for OpenSearch updates, a CRM worker rebuilds customer documents, and application reads happen through the alias `customers-search`.
+Database changes mark customer records for OpenSearch updates, a CRM worker rebuilds customer documents, and OpenSearch-facing application reads should happen through the alias `customers-search`.
+
+As of `2026-04-16`, production customer search reads still use the DB path even though the OpenSearch write path has been cut over to `customers_v6`.
 
 ## Implementation Sources
 
@@ -60,14 +62,26 @@ The current code also keeps a dual-write path for controlled schema migrations.
 
 These values are confirmed from the CRM code currently stored in this project:
 
-- current schema version variable: `5`
+- current schema version variable: `6`
 - write alias: `customers-search`
 - batch size: `1000`
 - max update attempts: `4`
 - dual write default: `false`
-- new schema version variable: `5`
+- new schema version variable: `6`
 
-Treat these as the current application-code settings. They still need live-environment validation before being treated as production truth.
+These are the steady-state post-cutover settings, not the temporary dual-write migration values.
+
+## Live Validated Migration Result
+
+The `2026-04-16` recovery and cutover validated this migration pattern:
+
+1. Create the new versioned index.
+2. Enable temporary dual write from the current schema version to the new schema version.
+3. Rebuild the full customer set until both versioned indexes reach parity.
+4. Move the `customers-search` alias to the new versioned index.
+5. Disable dual write and make the new schema version the steady-state default.
+
+That flow was used to move from `customers_v5` to `customers_v6`. Both indexes were rebuilt to `130209` documents before the alias moved to `customers_v6`.
 
 ## Document Build Inputs
 
@@ -77,14 +91,15 @@ Treat these as the current application-code settings. They still need live-envir
 - active service addresses from `CUSTOMER_SERVICE_ADDRESS_TABLE`
 - active contacts from `CUSTOMER_CONTACTS_TABLE`
 - cached sales-rep name data from `$dataCache`
+- schema-version-specific fields such as `source` and `reassigned_status`
 
 The resulting document shape is described in [schema/current.md](schema/current.md).
 
 ## Alias Write Path
 
 - Application reads should target `customers-search`.
-- Normal write behavior in the current CRM code targets the alias `customers-search`.
-- Controlled migration mode can also write directly to a versioned index such as `customers_v5`.
+- Normal write behavior in the current CRM code targets the alias `customers-search`, which is now on `customers_v6`.
+- Controlled migration mode can also write directly to a versioned index such as `customers_v6`.
 - Versioned indexes should otherwise be treated as implementation detail except during schema migration work.
 
 ## Full Reindex Lifecycle

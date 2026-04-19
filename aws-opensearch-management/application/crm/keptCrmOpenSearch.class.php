@@ -10,14 +10,14 @@ Class KeptCrmOpenSearch {
    
     // --- CONFIGURATION ---
     $disableTextOutput = ($debug ? false : true); //if this is false then there will be echos that happen when this function runs (keep this disabled unless you are debugging)
-    $schemaVersion = 5;
+    $schemaVersion = 6;
     $indexAlias = 'customers-search';
     $batchSize = 1000;
     $maxUpdateAttempts = 4;
     
     // --- DUAL WRITE IF WE ARE MOVING TO A NEW VERSION ---
     $dualWrite = false;
-    $newSchemaVersion = 5; //update this before you change the above value to true, also make sure the new index exists first!
+    $newSchemaVersion = 6; //update this before you change the above value to true, also make sure the new index exists first!
     $newIndexName = "customers_v".$newSchemaVersion;
     
     // --- SCRIPT LOGIC ---
@@ -207,7 +207,7 @@ Class KeptCrmOpenSearch {
   
         // Build the document based on the requested version
         switch($version) {
-          case 6:
+          case 5:
             $documents[] = [
               'id'                    => $data['id'],
               'brand'                 => $data['brand'],
@@ -216,8 +216,6 @@ Class KeptCrmOpenSearch {
               'city'                  => $data['city'],
               'state'                 => $data['state'],
               'account_number'        => $data['account_number'] ?? null,
-              'source'                => $data['source'] ?? null,
-              'reassigned_status'     => $data['reassigned_status'] ?? null,
               'sales_rep_id'          => $data['sales_rep_id'],
               'sales_rep_name'        => $dataCache->user_cache_info[$data['sales_rep_id']]['fullName'],
               'company_name'          => $data['company_name'],
@@ -229,6 +227,7 @@ Class KeptCrmOpenSearch {
             ];
             break;
           case 0:
+          case 6:
           default: //default will be the current version
             $documents[] = [
               'id'                    => $data['id'],
@@ -238,6 +237,8 @@ Class KeptCrmOpenSearch {
               'city'                  => $data['city'],
               'state'                 => $data['state'],
               'account_number'        => $data['account_number'] ?? null,
+              'source'                => $data['source'] ?? null,
+              'reassigned_status'     => $data['reassigned_status'] ?? null,
               'sales_rep_id'          => $data['sales_rep_id'],
               'sales_rep_name'        => $dataCache->user_cache_info[$data['sales_rep_id']]['fullName'],
               'company_name'          => $data['company_name'],

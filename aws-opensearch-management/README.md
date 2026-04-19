@@ -4,7 +4,7 @@ This folder is the managed documentation workspace for one AWS OpenSearch deploy
 
 ## Current Goal
 
-Turn the external notes in `inbox/` into maintained, canonical docs without losing the original source material.
+Keep the OpenSearch recovery state, schema history, and application integration docs current without losing the original source material in `inbox/`.
 
 ## Quick Facts
 
@@ -54,7 +54,7 @@ Turn the external notes in `inbox/` into maintained, canonical docs without losi
 | Operations runbook | Starter | Needs production commands, alarm names, and recovery steps. |
 | IAM role auth | Curated | Distilled from the general setup note. |
 | SearchQueryBuilder | Curated | Updated against the shared PHP implementation and the original application note. |
-| Customer schema current state | Code-confirmed | Current CRM code targets schema version 5; live alias target still needs domain validation. |
+| Customer schema current state | Live-validated | Customer writes and alias are on schema version 6; production customer search reads still use the DB path. |
 | Customer schema v1 history | Curated | Historical v1 mapping and creation flow extracted from the source note. |
 | Customer indexing pipeline | Curated | Worker, flags, alias write path, and reindex lifecycle documented from both notes and CRM code. |
 | Customer v1 to v2 migration | Curated | Historical zero-downtime migration procedure extracted from the source note. |
@@ -62,6 +62,6 @@ Turn the external notes in `inbox/` into maintained, canonical docs without losi
 ## Next Update
 
 - Fill in the live domain metadata in `inventory.md`.
-- Validate the live alias target in OpenSearch against the code-documented schema version 5.
+- Document the production OpenSearch read-path cutover once customer search stops using the DB path.
 - Add approved operational commands and alarm names to `runbook.md`.
 - Add dated entries to `change-log.md` whenever access, schema, or migration docs change.

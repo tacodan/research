@@ -120,6 +120,8 @@ Class KeptCrmOpenSearch {
     CUSTOMERS_TABLE.".city, ".
     CUSTOMERS_TABLE.".state, ".
     CUSTOMERS_TABLE.".account_number, ".
+    CUSTOMERS_TABLE.".source, ".
+    CUSTOMERS_TABLE.".reassigned_status, ".
     CUSTOMERS_TABLE.".sales_rep_id, ".
     CUSTOMERS_TABLE.".company_name, ".
     CUSTOMERS_TABLE.".last_updated, ".
@@ -205,6 +207,27 @@ Class KeptCrmOpenSearch {
   
         // Build the document based on the requested version
         switch($version) {
+          case 6:
+            $documents[] = [
+              'id'                    => $data['id'],
+              'brand'                 => $data['brand'],
+              'num_service_addresses' => $data['num_service_addresses'],
+              'addy_1'                => $data['addy_1'],
+              'city'                  => $data['city'],
+              'state'                 => $data['state'],
+              'account_number'        => $data['account_number'] ?? null,
+              'source'                => $data['source'] ?? null,
+              'reassigned_status'     => $data['reassigned_status'] ?? null,
+              'sales_rep_id'          => $data['sales_rep_id'],
+              'sales_rep_name'        => $dataCache->user_cache_info[$data['sales_rep_id']]['fullName'],
+              'company_name'          => $data['company_name'],
+              'last_updated'          => $osFormattedDate,
+              'status_state'          => $data['status_state'],
+              'status_state_sub'      => $data['status_state_sub'],
+              'service_addresses'     => $addressesByCustomer[$data['id']] ?? [],
+              'contacts'              => $contactsByCustomer[$data['id']] ?? [],            
+            ];
+            break;
           case 0:
           default: //default will be the current version
             $documents[] = [

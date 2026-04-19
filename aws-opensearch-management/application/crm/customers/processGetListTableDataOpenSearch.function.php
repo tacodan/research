@@ -144,6 +144,10 @@
             ['0']                               // The array of state values to match
           );          
           break;          
+        case 71: //All:Reassigned to Me
+          $builder->addFilter("sales_rep_id", $session->uid);
+          $builder->addFilter("reassigned_status", 1);
+          break;
       }
     }
     
@@ -207,9 +211,7 @@
       //$bindTypes .= "i";
       //$bindValues[] = $post['leadSourceFilterDD'];
       //$numActiveCustomFilters ++;
-      
-      //TODO: this doesn't work because source is not part of the dataset yet
-      
+
       $builder->addFilter('source', $post['leadSourceFilterDD']);
     }
     
